@@ -12,8 +12,12 @@ class MainTableViewController: UITableViewController {
 //    MARK:- SearchBar
     
     @IBOutlet weak var searchBar: UISearchBar!
+    @IBAction func favoritesButtonTapped(_ sender: Any) {
+        listOfEvents = FavoritesController.shared.favoritedEvents
+        tableView.reloadData()
+    }
     
-    var listOfEvents = [Venue]() {
+    var listOfEvents = [Event]() {
         didSet {
             DispatchQueue.main.async {
                 self.tableView.reloadData()
@@ -24,7 +28,7 @@ class MainTableViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         searchBar.delegate = self
-
+       listOfEvents = FavoritesController.shared.loadFromFile()
     }
 
     // MARK: - Table view data source
@@ -48,6 +52,18 @@ class MainTableViewController: UITableViewController {
 
         return cell
     }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        //        check for the identifier
+        guard segue.identifier == "MainToDetail" else { return }
+        //        pull out the DetailViewController
+        guard let detailVC = segue.destination as? ViewController else { return }
+        //        get the selected Event
+        let indexPath = tableView.indexPathForSelectedRow!
+        let currentEvent = listOfEvents[indexPath.row]
+        //        assign selected currentEvent to detail vc
+        detailVC.currentEvent = currentEvent
+    }
 }
 
 // MARK:- Extensions
@@ -56,7 +72,7 @@ extension MainTableViewController: UISearchBarDelegate {
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         guard let searchBarText = searchBar.text else { return }
         let eventRequest = EventRequest(searchedEvent: searchBarText)
-        eventRequest.SearchEvent { [weak self ] result in
+        eventRequest.SearchEvent { [ weak self ] result in
             switch result {
             case .failure(let error):
                 print(error)

@@ -12,6 +12,10 @@ enum EventsError: Error {
     case canNotProcessData
 }
 
+enum ImageError: Error {
+    case noDataAvailable
+}
+
 struct EventRequest {
     let resourceURL: URL
     let API_KEY = "MjE3NTIzMzd8MTYxODg0OTUyOC4yODQ1MTEz"
@@ -25,25 +29,34 @@ struct EventRequest {
         self.resourceURL = resourceURL
     }
     
-    func SearchEvent(completion: @escaping(Result<[Venue], EventsError>) -> Void) {
-        let dataTask = URLSession.shared.dataTask(with: resourceURL) { data, _, _ in
-            guard let jsonData = data else {
-                completion(.failure(.noDataAvailable))
+    func SearchEvent(completion: @escaping(Result<[Event], EventsError>) -> Void) {
+            let dataTask = URLSession.shared.dataTask(with: resourceURL) { data, _, _ in
+                guard let jsonData = data else {
+                    completion(.failure(.noDataAvailable))
+                    return
+                }
+                do {
+                    let decoder = JSONDecoder()
+                    let eventsResponse = try decoder.decode(Results.self, from: jsonData)
+                    let events = eventsResponse.events
+                    completion(.success(events))
+                } catch {
+                    completion(.failure(.canNotProcessData))
+                }
+            }
+            dataTask.resume()
+        }
+    
+    static func ImageFromURL(url: URL, completion: @escaping(Result<Data, ImageError>) -> Void) {
+        let dataTask = URLSession.shared.dataTask(with: url) { data, _, _ in
+            guard let data = data else { 
                 return
             }
-            
-            do {
-                let decoder = JSONDecoder()
-                let eventsResponse = try decoder.decode(Event.self, from: jsonData)
-                let eventDetails = eventsResponse.venue
-                completion(.success(eventDetails))
-            } catch {
-                completion(.failure(.canNotProcessData))
-            }
-            
+            completion(.success(data))
         }
         dataTask.resume()
-    }
+                        }
+    
 }
 
 var favoriteEvents: [Results] = []
